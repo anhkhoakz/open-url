@@ -6,17 +6,23 @@
 import SwiftUI
 
 @main
-struct OpenURLApp: App {
+internal struct OpenURLApp: App {
+    private enum Layout {
+        static let windowWidth: CGFloat = 1_080
+        static let windowHeight: CGFloat = 720
+        static let settingsWidth: CGFloat = 420
+        static let settingsPadding: CGFloat = 24
+    }
+
     @AppStorage("selectedBrowserBundleIdentifier")
-    private var selectedBrowserBundleIdentifier = ""
+    private var selectedBrowserBundleIdentifier: String = ""
 
     @AppStorage("stripTrackingParameters")
-    private var stripTrackingParameters = true
+    private var stripTrackingParameters: Bool = true
 
-    @State
-    private var workspace = URLWorkspace()
+    @State private var workspace: URLWorkspace = URLWorkspace()
 
-    var body: some Scene {
+    internal var body: some Scene {
         WindowGroup("OpenURL", id: "main") {
             ContentView(
                 workspace: workspace,
@@ -24,7 +30,7 @@ struct OpenURLApp: App {
                 stripTrackingParameters: $stripTrackingParameters
             )
         }
-        .defaultSize(width: 1_080, height: 720)
+        .defaultSize(width: Layout.windowWidth, height: Layout.windowHeight)
         .commands {
             WorkspaceCommands()
         }
@@ -35,8 +41,8 @@ struct OpenURLApp: App {
                 selectedBrowserBundleIdentifier: $selectedBrowserBundleIdentifier,
                 stripTrackingParameters: $stripTrackingParameters
             )
-            .frame(width: 420)
-            .padding(24)
+            .frame(width: Layout.settingsWidth)
+            .padding(Layout.settingsPadding)
         }
 
         MenuBarExtra("OpenURL", systemImage: "link.badge.plus") {

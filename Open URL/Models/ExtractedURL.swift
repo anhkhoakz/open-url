@@ -5,25 +5,25 @@
 
 import Foundation
 
-struct ExtractedURL: Identifiable, Hashable {
-    let id = UUID()
-    let url: URL
-    let rawText: String
+internal struct ExtractedURL: Identifiable, Hashable {
+    internal let id: UUID = UUID()
+    internal let url: URL
+    internal let rawText: String
 
-    var hostDisplay: String {
+    internal var hostDisplay: String {
         url.host(percentEncoded: false) ?? url.absoluteString
     }
 
-    var pathDisplay: String {
-        let path = url.path(percentEncoded: false)
+    internal var pathDisplay: String {
+        let path: String = url.path(percentEncoded: false)
         return path.isEmpty ? "/" : path
     }
 
-    var fullDisplay: String {
+    internal var fullDisplay: String {
         url.absoluteString
     }
 
-    var schemeDisplay: String {
+    internal var schemeDisplay: String {
         url.scheme?.uppercased() ?? "URL"
     }
 }

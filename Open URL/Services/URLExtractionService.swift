@@ -5,9 +5,11 @@
 
 import Foundation
 
-struct URLExtractionService {
-    private let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
-    private let trackingParameters = Set([
+internal struct URLExtractionService {
+    private let detector: NSDataDetector? = try? NSDataDetector(
+        types: NSTextCheckingResult.CheckingType.link.rawValue
+    )
+    private let trackingParameters: Set<String> = Set<String>([
         "fbclid",
         "gclid",
         "igshid",
@@ -17,7 +19,10 @@ struct URLExtractionService {
         "si"
     ])
 
-    func extract(from sourceText: String, stripTrackingParameters: Bool) -> [ExtractedURL] {
+    internal func extract(
+        from sourceText: String,
+        stripTrackingParameters: Bool
+    ) -> [ExtractedURL] {
         guard
             sourceText.isEmpty == false,
             let detector
@@ -25,16 +30,19 @@ struct URLExtractionService {
             return []
         }
 
-        let fullRange = NSRange(sourceText.startIndex..<sourceText.endIndex, in: sourceText)
-        let matches = detector.matches(in: sourceText, options: [], range: fullRange)
+        let fullRange: NSRange = NSRange(
+            sourceText.startIndex..<sourceText.endIndex,
+            in: sourceText
+        )
+        let matches: [NSTextCheckingResult] = detector.matches(in: sourceText, options: [], range: fullRange)
 
-        var seenURLs = Set<String>()
+        var seenURLs: Set<String> = Set<String>()
         var extractedURLs: [ExtractedURL] = []
 
         for match in matches {
             guard
-                let matchedRange = Range(match.range, in: sourceText),
-                let normalizedURL = normalizeURL(
+                let matchedRange: Range<String.Index> = Range(match.range, in: sourceText),
+                let normalizedURL: URL = normalizeURL(
                     rawMatch: String(sourceText[matchedRange]),
                     fallback: match.url,
                     stripTrackingParameters: stripTrackingParameters
@@ -43,7 +51,7 @@ struct URLExtractionService {
                 continue
             }
 
-            let dedupeKey = normalizedURL.absoluteString.lowercased()
+            let dedupeKey: String = normalizedURL.absoluteString.lowercased()
             guard seenURLs.insert(dedupeKey).inserted else {
                 continue
             }
@@ -64,19 +72,19 @@ struct URLExtractionService {
         fallback: URL?,
         stripTrackingParameters: Bool
     ) -> URL? {
-        let trimmedMatch = trimNoise(from: rawMatch)
-        let resolvedURL = URL(string: trimmedMatch) ?? fallback
+        let trimmedMatch: String = trimNoise(from: rawMatch)
+        let resolvedURL: URL? = URL(string: trimmedMatch) ?? fallback
 
         guard
-            var components = resolvedURL.flatMap({
-                URLComponents(url: $0, resolvingAgainstBaseURL: false)
+            var components: URLComponents = resolvedURL.flatMap({ url in
+                URLComponents(url: url, resolvingAgainstBaseURL: false)
             })
         else {
             return nil
         }
 
-        if stripTrackingParameters, let queryItems = components.queryItems {
-            let filteredQueryItems = queryItems.filter { item in
+        if stripTrackingParameters, let queryItems: [URLQueryItem] = components.queryItems {
+            let filteredQueryItems: [URLQueryItem] = queryItems.filter { item in
                 guard item.name.hasPrefix("utm_") == false else {
                     return false
                 }
@@ -91,24 +99,24 @@ struct URLExtractionService {
     }
 
     private func trimNoise(from value: String) -> String {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return "" }
+        let trimmed: String = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return ""
+        }
 
-        let leadingNoise = CharacterSet(charactersIn: "\"'`([<{")
-        let trailingNoise = CharacterSet(charactersIn: "\"'`.,;:!?]}>")
+        let leadingNoise: CharacterSet = CharacterSet(charactersIn: "\"'`([<{")
+        let trailingNoise: CharacterSet = CharacterSet(charactersIn: "\"'`.,;:!?]}>")
 
-        var startIndex = trimmed.startIndex
-        var endIndex = trimmed.endIndex
-        let unicodeScalars = trimmed.unicodeScalars
+        var startIndex: String.Index = trimmed.startIndex
+        var endIndex: String.Index = trimmed.endIndex
+        let unicodeScalars: String.UnicodeScalarView = trimmed.unicodeScalars
 
-        // Trim leading noise
         while startIndex < endIndex, leadingNoise.contains(unicodeScalars[startIndex]) {
             startIndex = trimmed.index(after: startIndex)
         }
 
-        // Trim trailing noise
         while startIndex < endIndex {
-            let lastIndex = trimmed.index(before: endIndex)
+            let lastIndex: String.Index = trimmed.index(before: endIndex)
             if trailingNoise.contains(unicodeScalars[lastIndex]) {
                 endIndex = lastIndex
             } else {
@@ -116,15 +124,16 @@ struct URLExtractionService {
             }
         }
 
-        var substring = trimmed[startIndex..<endIndex]
+        var substring: Substring = trimmed[startIndex..<endIndex]
 
-        // Handle unbalanced closing parentheses at the end.
-        // E.g., "(https://example.com/page)" gets trimmed at the start to "https://example.com/page)",
-        // which leaves an unbalanced ")". We count open and close parentheses to detect this.
-        var openCount = 0
-        var closeCount = 0
+        var openCount: Int = 0
+        var closeCount: Int = 0
         for char in substring {
-            if char == "(" { openCount += 1 } else if char == ")" { closeCount += 1 }
+            if char == "(" {
+                openCount += 1
+            } else if char == ")" {
+                closeCount += 1
+            }
         }
 
         while substring.last == ")", openCount < closeCount {

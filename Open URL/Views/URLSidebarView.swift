@@ -5,19 +5,25 @@
 
 import SwiftUI
 
-struct URLSidebarView: View {
-    let extractedURLs: [ExtractedURL]
-    @Binding var selectedURLIDs: Set<ExtractedURL.ID>
+internal struct URLSidebarView: View {
+    private enum Layout {
+        static let spacingExtraSmall: CGFloat = 2
+        static let spacingSmall: CGFloat = 10
+    }
 
-    var body: some View {
+    internal let extractedURLs: [ExtractedURL]
+    @Binding internal var selectedURLIDs: Set<ExtractedURL.ID>
+
+    internal var body: some View {
         List(selection: $selectedURLIDs) {
             Section {
                 ForEach(extractedURLs) { extractedURL in
-                    HStack(spacing: 10) {
+                    HStack(spacing: Layout.spacingSmall) {
                         Image(systemName: "link")
+                            .accessibilityHidden(true)
                             .foregroundStyle(.secondary)
 
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: Layout.spacingExtraSmall) {
                             Text(extractedURL.hostDisplay)
                                 .lineLimit(1)
 
@@ -39,7 +45,9 @@ struct URLSidebarView: View {
                 ContentUnavailableView(
                     "No URLs Yet",
                     systemImage: "link.slash",
-                    description: Text("Paste text or load your clipboard to populate the list.")
+                    description: Text(
+                        "Paste text or load your clipboard to populate the list."
+                    )
                 )
             }
         }

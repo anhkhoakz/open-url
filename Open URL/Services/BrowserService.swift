@@ -6,42 +6,28 @@
 import AppKit
 import Foundation
 
-enum BrowserServiceError: LocalizedError {
-    case noURLsToOpen
-    case browserUnavailable
-
-    var errorDescription: String? {
-        switch self {
-        case .noURLsToOpen:
-            return "There are no URLs to open."
-
-        case .browserUnavailable:
-            return "The selected browser is no longer available."
-        }
-    }
-}
-
-struct BrowserService {
-    func availableBrowsers() -> [BrowserOption] {
-        guard let sampleURL = URL(string: "https://example.com") else {
+internal struct BrowserService {
+    internal func availableBrowsers() -> [BrowserOption] {
+        guard let sampleURL: URL = URL(string: "https://example.com") else {
             return []
         }
 
-        let workspace = NSWorkspace.shared
-        let defaultAppURL = workspace.urlForApplication(toOpen: sampleURL)
-        let defaultBundleIdentifier = defaultAppURL.flatMap { Bundle(url: $0)?.bundleIdentifier }
+        let workspace: NSWorkspace = NSWorkspace.shared
+        let defaultAppURL: URL? = workspace.urlForApplication(toOpen: sampleURL)
+        let defaultBundleIdentifier: String? = defaultAppURL
+            .flatMap { Bundle(url: $0)?.bundleIdentifier }
 
-        let browserAppURLs = Array(workspace.urlsForApplications(toOpen: sampleURL))
+        let browserAppURLs: [URL] = Array(workspace.urlsForApplications(toOpen: sampleURL))
 
-        var options = browserAppURLs.compactMap { appURL -> BrowserOption? in
+        var options: [BrowserOption] = browserAppURLs.compactMap { appURL -> BrowserOption? in
             guard
-                let bundle = Bundle(url: appURL),
-                let bundleIdentifier = bundle.bundleIdentifier
+                let bundle: Bundle = Bundle(url: appURL),
+                let bundleIdentifier: String = bundle.bundleIdentifier
             else {
                 return nil
             }
 
-            let localizedName = FileManager.default.displayName(atPath: appURL.path)
+            let localizedName: String = FileManager.default.displayName(atPath: appURL.path)
             return BrowserOption(
                 appURL: appURL,
                 bundleIdentifier: bundleIdentifier,
@@ -52,8 +38,8 @@ struct BrowserService {
 
         if
             let defaultAppURL,
-            let bundle = Bundle(url: defaultAppURL),
-            let bundleIdentifier = bundle.bundleIdentifier,
+            let bundle: Bundle = Bundle(url: defaultAppURL),
+            let bundleIdentifier: String = bundle.bundleIdentifier,
             options.contains(where: { $0.bundleIdentifier == bundleIdentifier }) == false {
             options.append(
                 BrowserOption(
@@ -65,7 +51,7 @@ struct BrowserService {
             )
         }
 
-        var seenBundleIdentifiers = Set<String>()
+        var seenBundleIdentifiers: Set<String> = Set<String>()
 
         return options
             .filter { seenBundleIdentifiers.insert($0.bundleIdentifier).inserted }
@@ -74,36 +60,45 @@ struct BrowserService {
                     return lhs.isDefault && !rhs.isDefault
                 }
 
-                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                return lhs.name
+                    .localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
     }
 
-    func open(urls: [URL], with browser: BrowserOption?) throws {
+    internal func open(urls: [URL], with browser: BrowserOption?) throws {
         guard urls.isEmpty == false else {
             throw BrowserServiceError.noURLsToOpen
         }
 
         if let browser {
-            let configuration = NSWorkspace.OpenConfiguration()
-            configuration.activates = true
-
-            for url in urls {
-                NSWorkspace.shared.open(
-                    [url],
-                    withApplicationAt: browser.appURL,
-                    configuration: configuration
-                ) { _, error in
-                    if let error {
-                        NSLog("OpenURL failed to open %@ via %@: %@", url.absoluteString, browser.name, error.localizedDescription)
-                    }
-                }
-            }
-
+            openWithBrowser(urls: urls, browser: browser)
             return
         }
 
         for url in urls {
             NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func openWithBrowser(urls: [URL], browser: BrowserOption) {
+        let configuration: NSWorkspace.OpenConfiguration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
+
+        for url in urls {
+            NSWorkspace.shared.open(
+                [url],
+                withApplicationAt: browser.appURL,
+                configuration: configuration
+            ) { _, error in
+                if let error {
+                    NSLog(
+                        "OpenURL failed to open %@ via %@: %@",
+                        url.absoluteString,
+                        browser.name,
+                        error.localizedDescription
+                    )
+                }
+            }
         }
     }
 }

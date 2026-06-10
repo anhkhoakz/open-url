@@ -9,108 +9,85 @@ import Observation
 
 @MainActor
 @Observable
-final class URLWorkspace {
-    var sourceText = ""
-    var extractedURLs: [ExtractedURL] = []
-    var selectedURLIDs = Set<ExtractedURL.ID>()
-    var availableBrowsers: [BrowserOption] = []
-    var statusMessage = "Paste text or load the clipboard to extract URLs."
-
-    private let browserService = BrowserService()
-    private let extractionService = URLExtractionService()
-
-    var hasURLs: Bool {
-        extractedURLs.isEmpty == false
+internal final class URLWorkspace {
+    private enum Constants {
+        static let debounceNanoseconds: UInt64 = 150_000_000
     }
 
-    var selectedURLs: [ExtractedURL] {
-        extractedURLs.filter { selectedURLIDs.contains($0.id) }
-    }
+    internal var sourceText: String = ""
+    internal var extractedURLs: [ExtractedURL] = []
+    internal var selectedURLIDs: Set<ExtractedURL.ID> = Set<ExtractedURL.ID>()
+    internal var availableBrowsers: [BrowserOption] = []
+    internal var statusMessage: String = "Paste text or load the clipboard to extract URLs."
 
-    var previewURL: ExtractedURL? {
-        selectedURLs.first ?? extractedURLs.first
-    }
-
+    private let browserService: BrowserService = BrowserService()
+    private let extractionService: URLExtractionService = URLExtractionService()
     private var extractionTask: Task<Void, Never>?
     private var reloadBrowsersTask: Task<Void, Never>?
 
-    func configure(
+    internal var hasURLs: Bool {
+        extractedURLs.isEmpty == false
+    }
+
+    internal var selectedURLs: [ExtractedURL] {
+        extractedURLs.filter { selectedURLIDs.contains($0.id) }
+    }
+
+    internal var previewURL: ExtractedURL? {
+        selectedURLs.first ?? extractedURLs.first
+    }
+
+    internal func configure(
         selectedBrowserBundleIdentifier: String,
         stripTrackingParameters: Bool
     ) {
-        reloadBrowsers(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
-        refreshExtraction(stripTrackingParameters: stripTrackingParameters, debounce: false)
+        reloadBrowsers(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier, force: false)
+        refreshExtraction(
+            stripTrackingParameters: stripTrackingParameters,
+            debounce: false
+        )
     }
 
-    func refreshExtraction(stripTrackingParameters: Bool, debounce: Bool = true) {
+    internal func refreshExtraction(
+        stripTrackingParameters: Bool,
+        debounce: Bool
+    ) {
         extractionTask?.cancel()
-
-        extractionTask = Task {
-            if debounce {
-                do {
-                    try await Task.sleep(nanoseconds: 150_000_000) // 150ms debounce
-                } catch {
-                    return // Task was cancelled during sleep
-                }
-            }
-
-            let text = sourceText
-            let refreshedURLs = await extractionService.extract(
-                from: text,
-                stripTrackingParameters: stripTrackingParameters
+        extractionTask = Task { [self] in
+            await performExtraction(
+                stripTrackingParameters: stripTrackingParameters,
+                debounce: debounce
             )
-
-            guard !Task.isCancelled else { return }
-
-            let preservedURLStrings = Set(
-                extractedURLs
-                    .filter { selectedURLIDs.contains($0.id) }
-                    .map(\.fullDisplay)
-            )
-
-            extractedURLs = refreshedURLs
-            selectedURLIDs = Set(
-                refreshedURLs
-                    .filter { preservedURLStrings.contains($0.fullDisplay) }
-                    .map(\.id)
-            )
-
-            if refreshedURLs.isEmpty {
-                statusMessage = text.isEmpty
-                    ? "Paste text or load the clipboard to extract URLs."
-                    : "No valid URLs were detected in the current text."
-            } else {
-                statusMessage = "\(refreshedURLs.count) URL\(refreshedURLs.count == 1 ? "" : "s") ready to open."
-            }
         }
     }
 
-    func reloadBrowsers(selectedBrowserBundleIdentifier: String, force: Bool = false) {
+    internal func reloadBrowsers(
+        selectedBrowserBundleIdentifier: String,
+        force: Bool
+    ) {
         guard force || availableBrowsers.isEmpty else {
-            checkPreferredBrowser(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+            checkPreferredBrowser(
+                selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+            )
             return
         }
 
         reloadBrowsersTask?.cancel()
         reloadBrowsersTask = Task {
-            let browsers = await browserService.availableBrowsers()
+            let browsers: [BrowserOption] = self.browserService.availableBrowsers()
 
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled else {
+                return
+            }
 
-            availableBrowsers = browsers
-            checkPreferredBrowser(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+            self.availableBrowsers = browsers
+            self.checkPreferredBrowser(
+                selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+            )
         }
     }
 
-    private func checkPreferredBrowser(selectedBrowserBundleIdentifier: String) {
-        if
-            selectedBrowserBundleIdentifier.isEmpty == false,
-            availableBrowsers.contains(where: { $0.bundleIdentifier == selectedBrowserBundleIdentifier }) == false {
-            statusMessage = "The preferred browser is unavailable. OpenURL will fall back to the current default browser."
-        }
-    }
-
-    func loadClipboard(stripTrackingParameters: Bool) {
+    internal func loadClipboard(stripTrackingParameters: Bool) {
         guard
             let clipboardText = NSPasteboard.general.string(forType: .string),
             clipboardText.isEmpty == false
@@ -123,7 +100,7 @@ final class URLWorkspace {
         refreshExtraction(stripTrackingParameters: stripTrackingParameters, debounce: false)
     }
 
-    func clear() {
+    internal func clear() {
         extractionTask?.cancel()
         sourceText = ""
         extractedURLs = []
@@ -131,21 +108,22 @@ final class URLWorkspace {
         statusMessage = "Cleared the current input."
     }
 
-    func copyExtractedURLs() {
+    internal func copyExtractedURLs() {
         guard hasURLs else {
             statusMessage = "There are no extracted URLs to copy."
             return
         }
 
-        let combinedText = extractedURLs.map(\.fullDisplay).joined(separator: "\n")
-        let pasteboard = NSPasteboard.general
+        let combinedText: String = extractedURLs.map(\.fullDisplay).joined(separator: "\n")
+        let pasteboard: NSPasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(combinedText, forType: .string)
 
-        statusMessage = "Copied \(extractedURLs.count) URL\(extractedURLs.count == 1 ? "" : "s") to the clipboard."
+        statusMessage = "Copied \(extractedURLs.count) URL"
+            + "\(extractedURLs.count == 1 ? "" : "s") to the clipboard."
     }
 
-    func openAll(selectedBrowserBundleIdentifier: String) {
+    internal func openAll(selectedBrowserBundleIdentifier: String) {
         open(
             extractedURLs.map(\.url),
             selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier,
@@ -153,7 +131,7 @@ final class URLWorkspace {
         )
     }
 
-    func openSelected(selectedBrowserBundleIdentifier: String) {
+    internal func openSelected(selectedBrowserBundleIdentifier: String) {
         open(
             selectedURLs.map(\.url),
             selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier,
@@ -161,12 +139,27 @@ final class URLWorkspace {
         )
     }
 
-    func openClipboardURLs(
+    internal func openClipboardURLs(
         selectedBrowserBundleIdentifier: String,
         stripTrackingParameters: Bool
     ) {
         loadClipboard(stripTrackingParameters: stripTrackingParameters)
         openAll(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+    }
+
+    private func checkPreferredBrowser(
+        selectedBrowserBundleIdentifier: String
+    ) {
+        if
+            selectedBrowserBundleIdentifier.isEmpty == false,
+            availableBrowsers.contains(
+                where: { browserElement in
+                    browserElement.bundleIdentifier == selectedBrowserBundleIdentifier
+                }
+            ) == false {
+            statusMessage = "The preferred browser is unavailable. "
+                + "OpenURL will fall back to the current default browser."
+        }
     }
 
     private func open(
@@ -179,20 +172,68 @@ final class URLWorkspace {
             return
         }
 
-        let browser = availableBrowsers.first {
-            $0.bundleIdentifier == selectedBrowserBundleIdentifier
+        let browser: BrowserOption? = availableBrowsers.first { browserElement in
+            browserElement.bundleIdentifier == selectedBrowserBundleIdentifier
         }
 
         do {
             try browserService.open(urls: urls, with: browser)
 
             if let browser {
-                statusMessage = "Opened \(urls.count) URL\(urls.count == 1 ? "" : "s") in \(browser.name)."
+                statusMessage = "Opened \(urls.count) URL"
+                    + "\(urls.count == 1 ? "" : "s") in \(browser.name)."
             } else {
-                statusMessage = "Opened \(urls.count) URL\(urls.count == 1 ? "" : "s") in the default browser."
+                statusMessage = "Opened \(urls.count) URL"
+                    + "\(urls.count == 1 ? "" : "s") in the default browser."
             }
         } catch {
             statusMessage = error.localizedDescription
         }
     }
+
+    private func performExtraction(
+        stripTrackingParameters: Bool,
+        debounce: Bool
+    ) async {
+        if debounce {
+            do {
+                try await Task.sleep(nanoseconds: Constants.debounceNanoseconds)
+            } catch {
+                return
+            }
+        }
+
+        let text: String = sourceText
+        let refreshedURLs: [ExtractedURL] = extractionService.extract(
+            from: text,
+            stripTrackingParameters: stripTrackingParameters
+        )
+
+        guard !Task.isCancelled else {
+            return
+        }
+
+        let preservedURLStrings: Set<String> = Set<String>(
+            extractedURLs
+                .filter { selectedURLIDs.contains($0.id) }
+                .map(\.fullDisplay)
+        )
+
+        extractedURLs = refreshedURLs
+        selectedURLIDs = Set<ExtractedURL.ID>(
+            refreshedURLs
+                .filter { preservedURLStrings.contains($0.fullDisplay) }
+                .map(\.id)
+        )
+
+        if refreshedURLs.isEmpty {
+            statusMessage = text.isEmpty
+                ? "Paste text or load the clipboard to extract URLs."
+                : "No valid URLs were detected in the current text."
+        } else {
+            statusMessage = "\(refreshedURLs.count) URL"
+                + "\(refreshedURLs.count == 1 ? "" : "s") ready to open."
+        }
+    }
+
 }

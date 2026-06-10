@@ -5,12 +5,17 @@
 
 import SwiftUI
 
-struct ContentView: View {
-    @Bindable var workspace: URLWorkspace
-    @Binding var selectedBrowserBundleIdentifier: String
-    @Binding var stripTrackingParameters: Bool
+internal struct ContentView: View {
+    private enum Layout {
+        static let columnWidthMin: CGFloat = 280
+        static let columnWidthIdeal: CGFloat = 320
+    }
 
-    @State private var inspectorPresented = true
+    @Bindable internal var workspace: URLWorkspace
+    @Binding internal var selectedBrowserBundleIdentifier: String
+    @Binding internal var stripTrackingParameters: Bool
+
+    @State private var inspectorPresented: Bool = true
 
     private var commandActions: WorkspaceCommandActions {
         WorkspaceCommandActions(
@@ -18,10 +23,14 @@ struct ContentView: View {
                 workspace.loadClipboard(stripTrackingParameters: stripTrackingParameters)
             },
             openSelected: {
-                workspace.openSelected(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+                workspace.openSelected(
+                    selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                )
             },
             openAll: {
-                workspace.openAll(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+                workspace.openAll(
+                    selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                )
             },
             copyExtractedURLs: {
                 workspace.copyExtractedURLs()
@@ -38,13 +47,16 @@ struct ContentView: View {
         )
     }
 
-    var body: some View {
+    internal var body: some View {
         NavigationSplitView {
             URLSidebarView(
                 extractedURLs: workspace.extractedURLs,
                 selectedURLIDs: $workspace.selectedURLIDs
             )
-            .navigationSplitViewColumnWidth(min: 280, ideal: 320)
+            .navigationSplitViewColumnWidth(
+                min: Layout.columnWidthMin,
+                ideal: Layout.columnWidthIdeal
+            )
         } detail: {
             URLDetailView(
                 workspace: workspace,
@@ -69,12 +81,16 @@ struct ContentView: View {
                 .keyboardShortcut("l", modifiers: [.command, .shift])
 
                 Button("Open Selected") {
-                    workspace.openSelected(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+                    workspace.openSelected(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
                 }
                 .disabled(workspace.selectedURLs.isEmpty)
 
                 Button("Open All") {
-                    workspace.openAll(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+                    workspace.openAll(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
                 }
                 .disabled(workspace.hasURLs == false)
             }
@@ -85,7 +101,10 @@ struct ContentView: View {
                 }
                 .disabled(workspace.hasURLs == false)
 
-                Button("Inspector", systemImage: inspectorPresented ? "sidebar.trailing" : "sidebar.right") {
+                Button(
+                    "Inspector",
+                    systemImage: inspectorPresented ? "sidebar.trailing" : "sidebar.right"
+                ) {
                     inspectorPresented.toggle()
                 }
             }
@@ -97,10 +116,13 @@ struct ContentView: View {
             )
         }
         .onChange(of: stripTrackingParameters) { _, newValue in
-            workspace.refreshExtraction(stripTrackingParameters: newValue, debounce: false)
+            workspace.refreshExtraction(
+                stripTrackingParameters: newValue,
+                debounce: false
+            )
         }
         .onChange(of: selectedBrowserBundleIdentifier) { _, newValue in
-            workspace.reloadBrowsers(selectedBrowserBundleIdentifier: newValue)
+            workspace.reloadBrowsers(selectedBrowserBundleIdentifier: newValue, force: false)
         }
     }
 }

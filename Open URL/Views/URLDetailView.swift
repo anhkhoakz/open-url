@@ -5,27 +5,39 @@
 
 import SwiftUI
 
-struct URLDetailView: View {
-    @Bindable var workspace: URLWorkspace
+internal struct URLDetailView: View {
+    private enum Layout {
+        static let spacingLarge: CGFloat = 18
+        static let spacingMedium: CGFloat = 12
+        static let spacingSmall: CGFloat = 8
+        static let spacingExtraSmall: CGFloat = 6
+        static let spacingTiny: CGFloat = 2
+        static let paddingLarge: CGFloat = 24
+        static let paddingMedium: CGFloat = 8
+        static let minHeightEditor: CGFloat = 260
+        static let minWidthMetric: CGFloat = 140
+    }
 
-    let selectedBrowserBundleIdentifier: String
-    let stripTrackingParameters: Bool
+    @Bindable internal var workspace: URLWorkspace
 
-    var body: some View {
+    internal let selectedBrowserBundleIdentifier: String
+    internal let stripTrackingParameters: Bool
+
+    internal var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: Layout.spacingLarge) {
                 summarySection
                 editorSection
                 previewSection
             }
-            .padding(24)
+            .padding(Layout.paddingLarge)
         }
         .background(.regularMaterial)
     }
 
     private var summarySection: some View {
         GroupBox {
-            HStack(alignment: .top, spacing: 18) {
+            HStack(alignment: .top, spacing: Layout.spacingLarge) {
                 summaryMetric(
                     title: "Detected",
                     value: "\(workspace.extractedURLs.count)",
@@ -55,18 +67,23 @@ struct URLDetailView: View {
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $workspace.sourceText)
                     .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 260)
+                    .frame(minHeight: Layout.minHeightEditor)
                     .scrollContentBackground(.hidden)
-                    .padding(.top, 2)
+                    .padding(.top, Layout.spacingTiny)
                     .onChange(of: workspace.sourceText) { _, _ in
-                        workspace.refreshExtraction(stripTrackingParameters: stripTrackingParameters)
+                        workspace.refreshExtraction(
+                            stripTrackingParameters: stripTrackingParameters, debounce: false
+                        )
                     }
 
                 if workspace.sourceText.isEmpty {
-                    Text("Paste mixed text here. OpenURL extracts valid links in real time and keeps the source intact for review.")
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 8)
-                        .padding(.leading, 6)
+                    Text(
+                        "Paste mixed text here. OpenURL extracts valid links "
+                        + "in real time and keeps the source intact for review."
+                    )
+                    .foregroundStyle(.secondary)
+                    .padding(.top, Layout.paddingMedium)
+                    .padding(.leading, Layout.spacingExtraSmall)
                 }
             }
 
@@ -74,7 +91,7 @@ struct URLDetailView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 6)
+                .padding(.top, Layout.spacingExtraSmall)
         } label: {
             Text("Source Text")
         }
@@ -83,7 +100,7 @@ struct URLDetailView: View {
     private var previewSection: some View {
         GroupBox {
             if let previewURL = workspace.previewURL {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Layout.spacingMedium) {
                     HStack {
                         Label(previewURL.hostDisplay, systemImage: "safari")
                             .font(.headline)
@@ -105,12 +122,15 @@ struct URLDetailView: View {
                         .textSelection(.enabled)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Layout.spacingSmall) {
                     Text("No URL preview yet")
                         .font(.headline)
 
-                    Text("Load the clipboard or paste text to inspect the extracted links before opening them.")
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Load the clipboard or paste text to inspect "
+                        + "the extracted links before opening them."
+                    )
+                    .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -129,8 +149,12 @@ struct URLDetailView: View {
             .name ?? "System Default"
     }
 
-    private func summaryMetric(title: String, value: String, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+    private func summaryMetric(
+        title: String,
+        value: String,
+        systemImage: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Layout.spacingExtraSmall) {
             Label(title, systemImage: systemImage)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -138,6 +162,6 @@ struct URLDetailView: View {
             Text(value)
                 .font(.title3.weight(.semibold))
         }
-        .frame(minWidth: 140, alignment: .leading)
+        .frame(minWidth: Layout.minWidthMetric, alignment: .leading)
     }
 }

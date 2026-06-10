@@ -5,63 +5,80 @@
 
 import SwiftUI
 
-struct SelectionInspectorView: View {
-    @Bindable var workspace: URLWorkspace
-    @Binding var selectedBrowserBundleIdentifier: String
-    @Binding var stripTrackingParameters: Bool
+internal struct SelectionInspectorView: View {
+    private enum Layout {
+        static let spacingLarge: CGFloat = 18
+        static let spacingMedium: CGFloat = 12
+        static let spacingSmall: CGFloat = 8
+        static let minWidthInspector: CGFloat = 260
+    }
 
-    var body: some View {
+    @Bindable internal var workspace: URLWorkspace
+    @Binding internal var selectedBrowserBundleIdentifier: String
+    @Binding internal var stripTrackingParameters: Bool
+
+    internal var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                GroupBox("Open") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Picker("Browser", selection: $selectedBrowserBundleIdentifier) {
-                            Text("Default Browser").tag("")
+            VStack(alignment: .leading, spacing: Layout.spacingLarge) {
+                openSection
+                selectionSection
+                shortcutsSection
+            }
+            .padding(.vertical, Layout.spacingSmall)
+        }
+        .frame(minWidth: Layout.minWidthInspector)
+    }
 
-                            ForEach(workspace.availableBrowsers) { browser in
-                                Text(browser.isDefault ? "\(browser.name) (Default)" : browser.name)
-                                    .tag(browser.bundleIdentifier)
-                            }
-                        }
-                        .pickerStyle(.menu)
+    private var openSection: some View {
+        GroupBox("Open") {
+            VStack(alignment: .leading, spacing: Layout.spacingMedium) {
+                Picker("Browser", selection: $selectedBrowserBundleIdentifier) {
+                    Text("Default Browser").tag("")
 
-                        Toggle("Remove common tracking parameters", isOn: $stripTrackingParameters)
+                    ForEach(workspace.availableBrowsers) { browser in
+                        Text(browser.isDefault ? "\(browser.name) (Default)" : browser.name)
+                            .tag(browser.bundleIdentifier)
                     }
                 }
+                .pickerStyle(.menu)
 
-                GroupBox("Selection") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        LabeledContent("Detected", value: "\(workspace.extractedURLs.count)")
-                        LabeledContent("Selected", value: "\(workspace.selectedURLs.count)")
+                Toggle("Remove common tracking parameters", isOn: $stripTrackingParameters)
+            }
+        }
+    }
 
-                        if let previewURL = workspace.previewURL {
-                            Divider()
-                            Text(previewURL.hostDisplay)
-                                .font(.headline)
+    private var selectionSection: some View {
+        GroupBox("Selection") {
+            VStack(alignment: .leading, spacing: Layout.spacingSmall) {
+                LabeledContent("Detected", value: "\(workspace.extractedURLs.count)")
+                LabeledContent("Selected", value: "\(workspace.selectedURLs.count)")
 
-                            Text(previewURL.fullDisplay)
-                                .font(.system(.footnote, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .textSelection(.enabled)
-                        } else {
-                            Text("Select a URL to preview it here.")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
+                if let previewURL = workspace.previewURL {
+                    Divider()
+                    Text(previewURL.hostDisplay)
+                        .font(.headline)
 
-                GroupBox("Shortcuts") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Cmd-Shift-L loads clipboard text.")
-                        Text("Cmd-Return opens selected URLs.")
-                        Text("Cmd-Shift-Return opens every extracted URL.")
-                    }
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    Text(previewURL.fullDisplay)
+                        .font(.system(.footnote, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                } else {
+                    Text("Select a URL to preview it here.")
+                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(.vertical, 8)
         }
-        .frame(minWidth: 260)
+    }
+
+    private var shortcutsSection: some View {
+        GroupBox("Shortcuts") {
+            VStack(alignment: .leading, spacing: Layout.spacingSmall) {
+                Text("Cmd-Shift-L loads clipboard text.")
+                Text("Cmd-Return opens selected URLs.")
+                Text("Cmd-Shift-Return opens every extracted URL.")
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+        }
     }
 }

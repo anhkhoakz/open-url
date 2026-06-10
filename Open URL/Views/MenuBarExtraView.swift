@@ -5,16 +5,24 @@
 
 import SwiftUI
 
-struct MenuBarExtraView: View {
-    @Bindable var workspace: URLWorkspace
+internal struct MenuBarExtraView: View {
+    private enum Layout {
+        static let spacingSmall: CGFloat = 10
+        static let lineLimitMedium: Int = 3
+        static let maxWidthMedium: CGFloat = 220
+        static let paddingMedium: CGFloat = 12
+    }
 
-    let selectedBrowserBundleIdentifier: String
-    let stripTrackingParameters: Bool
+    @Bindable internal var workspace: URLWorkspace
 
-    @Environment(\.openWindow) private var openWindow
+    internal let selectedBrowserBundleIdentifier: String
+    internal let stripTrackingParameters: Bool
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+    @Environment(\.openWindow)
+    private var openWindow: OpenWindowAction
+
+    internal var body: some View {
+        VStack(alignment: .leading, spacing: Layout.spacingSmall) {
             Button("Open URLs From Clipboard") {
                 workspace.openClipboardURLs(
                     selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier,
@@ -35,10 +43,10 @@ struct MenuBarExtraView: View {
             Text(workspace.statusMessage)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-                .lineLimit(3)
-                .frame(maxWidth: 220, alignment: .leading)
+                .lineLimit(Layout.lineLimitMedium)
+                .frame(maxWidth: Layout.maxWidthMedium, alignment: .leading)
         }
-        .padding(12)
+        .padding(Layout.paddingMedium)
         .onAppear {
             workspace.configure(
                 selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier,

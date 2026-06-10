@@ -5,11 +5,13 @@
 
 import Foundation
 
-struct BrowserOption: Identifiable, Hashable {
-    let appURL: URL
-    let bundleIdentifier: String
-    let name: String
-    let isDefault: Bool
+internal struct BrowserOption: Identifiable, Hashable {
+    internal let appURL: URL
+    internal let bundleIdentifier: String
+    internal let name: String
+    internal let isDefault: Bool
 
-    var id: String { bundleIdentifier }
+    internal var id: String {
+        bundleIdentifier
+    }
 }
