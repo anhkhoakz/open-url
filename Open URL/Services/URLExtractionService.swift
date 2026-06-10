@@ -91,26 +91,47 @@ struct URLExtractionService {
     }
 
     private func trimNoise(from value: String) -> String {
-        var candidate = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return "" }
+
         let leadingNoise = CharacterSet(charactersIn: "\"'`([<{")
         let trailingNoise = CharacterSet(charactersIn: "\"'`.,;:!?]}>")
 
-        while
-            let firstScalar = candidate.unicodeScalars.first,
-            leadingNoise.contains(firstScalar) {
-            candidate.removeFirst()
+        var startIndex = trimmed.startIndex
+        var endIndex = trimmed.endIndex
+        let unicodeScalars = trimmed.unicodeScalars
+
+        // Trim leading noise
+        while startIndex < endIndex, leadingNoise.contains(unicodeScalars[startIndex]) {
+            startIndex = trimmed.index(after: startIndex)
         }
 
-        while
-            let lastScalar = candidate.unicodeScalars.last,
-            trailingNoise.contains(lastScalar) {
-            candidate.removeLast()
+        // Trim trailing noise
+        while startIndex < endIndex {
+            let lastIndex = trimmed.index(before: endIndex)
+            if trailingNoise.contains(unicodeScalars[lastIndex]) {
+                endIndex = lastIndex
+            } else {
+                break
+            }
         }
 
-        while candidate.last == ")", candidate.filter({ $0 == "(" }).count < candidate.filter({ $0 == ")" }).count {
-            candidate.removeLast()
+        var substring = trimmed[startIndex..<endIndex]
+
+        // Handle unbalanced closing parentheses at the end.
+        // E.g., "(https://example.com/page)" gets trimmed at the start to "https://example.com/page)",
+        // which leaves an unbalanced ")". We count open and close parentheses to detect this.
+        var openCount = 0
+        var closeCount = 0
+        for char in substring {
+            if char == "(" { openCount += 1 } else if char == ")" { closeCount += 1 }
         }
 
-        return candidate
+        while substring.last == ")", openCount < closeCount {
+            substring = substring.dropLast()
+            closeCount -= 1
+        }
+
+        return String(substring)
     }
 }

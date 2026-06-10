@@ -97,7 +97,7 @@ struct ContentView: View {
             )
         }
         .onChange(of: stripTrackingParameters) { _, newValue in
-            workspace.refreshExtraction(stripTrackingParameters: newValue)
+            workspace.refreshExtraction(stripTrackingParameters: newValue, debounce: false)
         }
         .onChange(of: selectedBrowserBundleIdentifier) { _, newValue in
             workspace.reloadBrowsers(selectedBrowserBundleIdentifier: newValue)
