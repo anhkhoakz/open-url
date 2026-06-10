@@ -32,7 +32,7 @@ internal struct SettingsView: View {
                 Text("OpenURL reads the clipboard only after an explicit action.")
                 Text(
                     "Use the menu bar item for instant clipboard opening, "
-                    + "or keep the main window open for paste-and-review."
+                        + "or keep the main window open for paste-and-review."
                 )
             }
             .font(.footnote)

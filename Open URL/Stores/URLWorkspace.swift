@@ -235,5 +235,8 @@ internal final class URLWorkspace {
                 + "\(refreshedURLs.count == 1 ? "" : "s") ready to open."
         }
     }
-
+    deinit {
+        extractionTask?.cancel()
+        reloadBrowsersTask?.cancel()
+    }
 }

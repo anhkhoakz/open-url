@@ -79,7 +79,7 @@ internal struct URLDetailView: View {
                 if workspace.sourceText.isEmpty {
                     Text(
                         "Paste mixed text here. OpenURL extracts valid links "
-                        + "in real time and keeps the source intact for review."
+                            + "in real time and keeps the source intact for review."
                     )
                     .foregroundStyle(.secondary)
                     .padding(.top, Layout.paddingMedium)
@@ -128,7 +128,7 @@ internal struct URLDetailView: View {
 
                     Text(
                         "Load the clipboard or paste text to inspect "
-                        + "the extracted links before opening them."
+                            + "the extracted links before opening them."
                     )
                     .foregroundStyle(.secondary)
                 }
