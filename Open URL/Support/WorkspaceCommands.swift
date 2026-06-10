@@ -33,7 +33,7 @@ struct WorkspaceCommands: Commands {
     private var actions
 
     var body: some Commands {
-        CommandMenu("OpenURL") {
+        CommandMenu("Action") {
             Button("Paste From Clipboard") {
                 actions?.pasteFromClipboard()
             }
