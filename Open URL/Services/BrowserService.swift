@@ -14,6 +14,7 @@ enum BrowserServiceError: LocalizedError {
         switch self {
         case .noURLsToOpen:
             return "There are no URLs to open."
+
         case .browserUnavailable:
             return "The selected browser is no longer available."
         }
@@ -53,8 +54,7 @@ struct BrowserService {
             let defaultAppURL,
             let bundle = Bundle(url: defaultAppURL),
             let bundleIdentifier = bundle.bundleIdentifier,
-            options.contains(where: { $0.bundleIdentifier == bundleIdentifier }) == false
-        {
+            options.contains(where: { $0.bundleIdentifier == bundleIdentifier }) == false {
             options.append(
                 BrowserOption(
                     appURL: defaultAppURL,

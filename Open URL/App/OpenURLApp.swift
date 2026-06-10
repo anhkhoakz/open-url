@@ -24,7 +24,7 @@ struct OpenURLApp: App {
                 stripTrackingParameters: $stripTrackingParameters
             )
         }
-        .defaultSize(width: 1080, height: 720)
+        .defaultSize(width: 1_080, height: 720)
         .commands {
             WorkspaceCommands()
         }

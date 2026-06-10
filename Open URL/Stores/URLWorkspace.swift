@@ -72,8 +72,7 @@ final class URLWorkspace {
 
         if
             selectedBrowserBundleIdentifier.isEmpty == false,
-            availableBrowsers.contains(where: { $0.bundleIdentifier == selectedBrowserBundleIdentifier }) == false
-        {
+            availableBrowsers.contains(where: { $0.bundleIdentifier == selectedBrowserBundleIdentifier }) == false {
             statusMessage = "The preferred browser is unavailable. OpenURL will fall back to the current default browser."
         }
     }

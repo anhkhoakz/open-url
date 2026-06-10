@@ -97,19 +97,17 @@ struct URLExtractionService {
 
         while
             let firstScalar = candidate.unicodeScalars.first,
-            leadingNoise.contains(firstScalar)
-        {
+            leadingNoise.contains(firstScalar) {
             candidate.removeFirst()
         }
 
         while
             let lastScalar = candidate.unicodeScalars.last,
-            trailingNoise.contains(lastScalar)
-        {
+            trailingNoise.contains(lastScalar) {
             candidate.removeLast()
         }
 
-        while candidate.last == ")" && candidate.filter({ $0 == "(" }).count < candidate.filter({ $0 == ")" }).count {
+        while candidate.last == ")", candidate.filter({ $0 == "(" }).count < candidate.filter({ $0 == ")" }).count {
             candidate.removeLast()
         }
 

@@ -125,7 +125,7 @@ struct URLDetailView: View {
         }
 
         return workspace.availableBrowsers
-            .first(where: { $0.bundleIdentifier == selectedBrowserBundleIdentifier })?
+            .first { $0.bundleIdentifier == selectedBrowserBundleIdentifier }?
             .name ?? "System Default"
     }
 
