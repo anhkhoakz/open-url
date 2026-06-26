@@ -9,15 +9,6 @@ internal struct URLExtractionService {
     private let detector: NSDataDetector? = try? NSDataDetector(
         types: NSTextCheckingResult.CheckingType.link.rawValue
     )
-    private let trackingParameters: Set<String> = Set<String>([
-        "fbclid",
-        "gclid",
-        "igshid",
-        "mc_cid",
-        "mc_eid",
-        "rdt",
-        "si"
-    ])
 
     internal func extract(
         from sourceText: String,
@@ -83,19 +74,57 @@ internal struct URLExtractionService {
             return nil
         }
 
-        if stripTrackingParameters, let queryItems: [URLQueryItem] = components.queryItems {
-            let filteredQueryItems: [URLQueryItem] = queryItems.filter { item in
-                guard item.name.hasPrefix("utm_") == false else {
-                    return false
-                }
-
-                return trackingParameters.contains(item.name.lowercased()) == false
+        if stripTrackingParameters {
+            if let host: String = desktopHost(from: components.host), host.isEmpty == false {
+                components.host = host
             }
 
-            components.queryItems = filteredQueryItems.isEmpty ? nil : filteredQueryItems
+            if let queryItems: [URLQueryItem] = components.queryItems {
+                let allowedQueryNames: Set<String> = allowedQueryNames(for: components.host)
+                let filteredQueryItems: [URLQueryItem] = queryItems.filter { item in
+                    allowedQueryNames.contains(item.name) || allowedQueryNames.contains(item.name.lowercased())
+                }
+
+                components.queryItems = filteredQueryItems.isEmpty ? nil : filteredQueryItems
+            }
         }
 
         return components.url
+    }
+
+    private func desktopHost(from host: String?) -> String? {
+        guard let host else {
+            return nil
+        }
+
+        let lowercasedHost: String = host.lowercased()
+        for prefix in ["m.", "mobile.", "touch."] where lowercasedHost.hasPrefix(prefix) {
+            return String(lowercasedHost.dropFirst(prefix.count))
+        }
+
+        return lowercasedHost
+    }
+
+    private func allowedQueryNames(for host: String?) -> Set<String> {
+        guard let host else {
+            return ["q"]
+        }
+
+        let lowercasedHost: String = host.lowercased()
+
+        if lowercasedHost.range(of: "^(?:www\\.)?developer\\.apple\\.com$", options: .regularExpression) != nil {
+            return ["language"]
+        }
+
+        if lowercasedHost.range(of: "^(?:www\\.)?amazon\\.[a-z]+$", options: .regularExpression) != nil {
+            return ["k"]
+        }
+
+        if lowercasedHost.range(of: "^(?:www\\.)?(youtube\\.com|youtu\\.be)$", options: .regularExpression) != nil {
+            return ["v", "t", "list", "index"]
+        }
+
+        return ["q"]
     }
 
     private func trimNoise(from value: String) -> String {

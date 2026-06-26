@@ -1,16 +1,2 @@
 strict: true
-
-only_rules: []
-disabled_rules:
-  - contrasted_opening_brace
-  - redundant_type_annotation
-  - one_declaration_per_file
-  - file_types_order
-
-opt_in_rules:
-  - all
-
-analyzer_rules:
-  - all
-
-reporter: "xcode"
+reporter: xcode

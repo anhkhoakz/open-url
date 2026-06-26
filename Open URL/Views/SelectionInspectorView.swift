@@ -7,10 +7,11 @@ import SwiftUI
 
 internal struct SelectionInspectorView: View {
     private enum Layout {
-        static let spacingLarge: CGFloat = 18
+        static let spacingLarge: CGFloat = 22
         static let spacingMedium: CGFloat = 12
         static let spacingSmall: CGFloat = 8
         static let minWidthInspector: CGFloat = 260
+        static let shortcutKeyWidth: CGFloat = 74
     }
 
     @Bindable internal var workspace: URLWorkspace
@@ -30,7 +31,7 @@ internal struct SelectionInspectorView: View {
     }
 
     private var openSection: some View {
-        GroupBox("Open") {
+        GroupBox("Open With") {
             VStack(alignment: .leading, spacing: Layout.spacingMedium) {
                 Picker("Browser", selection: $selectedBrowserBundleIdentifier) {
                     Text("Default Browser").tag("")
@@ -43,15 +44,16 @@ internal struct SelectionInspectorView: View {
                 .pickerStyle(.menu)
 
                 Toggle("Remove common tracking parameters", isOn: $stripTrackingParameters)
+                    .toggleStyle(.switch)
             }
         }
     }
 
     private var selectionSection: some View {
-        GroupBox("Selection") {
+        GroupBox("Current Selection") {
             VStack(alignment: .leading, spacing: Layout.spacingSmall) {
-                LabeledContent("Detected", value: "\(workspace.extractedURLs.count)")
-                LabeledContent("Selected", value: "\(workspace.selectedURLs.count)")
+                LabeledContent("Detected", value: "\(workspace.extractedURLs.count) URLs")
+                LabeledContent("Selected", value: "\(workspace.selectedURLs.count) URLs")
 
                 if let previewURL = workspace.previewURL {
                     Divider()
@@ -71,14 +73,24 @@ internal struct SelectionInspectorView: View {
     }
 
     private var shortcutsSection: some View {
-        GroupBox("Shortcuts") {
+        GroupBox("Keyboard Shortcuts") {
             VStack(alignment: .leading, spacing: Layout.spacingSmall) {
-                Text("Cmd-Shift-L loads clipboard text.")
-                Text("Cmd-Return opens selected URLs.")
-                Text("Cmd-Shift-Return opens every extracted URL.")
+                shortcutRow(keys: "⌘⇧L", action: "Load Clipboard")
+                shortcutRow(keys: "⌘↩", action: "Open Selected")
+                shortcutRow(keys: "⌘⇧↩", action: "Open All")
             }
             .font(.footnote)
             .foregroundStyle(.secondary)
+        }
+    }
+
+    private func shortcutRow(keys: String, action: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Layout.spacingMedium) {
+            Text(keys)
+                .font(.system(.footnote, design: .monospaced).weight(.semibold))
+                .frame(width: Layout.shortcutKeyWidth, alignment: .leading)
+
+            Text(action)
         }
     }
 }

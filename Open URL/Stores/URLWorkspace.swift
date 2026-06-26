@@ -88,10 +88,7 @@ internal final class URLWorkspace {
     }
 
     internal func loadClipboard(stripTrackingParameters: Bool) {
-        guard
-            let clipboardText = NSPasteboard.general.string(forType: .string),
-            clipboardText.isEmpty == false
-        else {
+        guard let clipboardText = clipboardText() else {
             statusMessage = "The clipboard does not contain any text."
             return
         }
@@ -143,8 +140,31 @@ internal final class URLWorkspace {
         selectedBrowserBundleIdentifier: String,
         stripTrackingParameters: Bool
     ) {
-        loadClipboard(stripTrackingParameters: stripTrackingParameters)
+        guard let clipboardText = clipboardText() else {
+            statusMessage = "The clipboard does not contain any text."
+            return
+        }
+
+        extractionTask?.cancel()
+        sourceText = clipboardText
+
+        let refreshedURLs: [ExtractedURL] = extractionService.extract(
+            from: clipboardText,
+            stripTrackingParameters: stripTrackingParameters
+        )
+        commitExtractionResult(refreshedURLs, sourceText: clipboardText)
         openAll(selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier)
+    }
+
+    private func clipboardText() -> String? {
+        guard
+            let clipboardText = NSPasteboard.general.string(forType: .string),
+            clipboardText.isEmpty == false
+        else {
+            return nil
+        }
+
+        return clipboardText
     }
 
     private func checkPreferredBrowser(
@@ -213,6 +233,13 @@ internal final class URLWorkspace {
             return
         }
 
+        commitExtractionResult(refreshedURLs, sourceText: text)
+    }
+
+    private func commitExtractionResult(
+        _ refreshedURLs: [ExtractedURL],
+        sourceText: String
+    ) {
         let preservedURLStrings: Set<String> = Set<String>(
             extractedURLs
                 .filter { selectedURLIDs.contains($0.id) }
@@ -227,7 +254,7 @@ internal final class URLWorkspace {
         )
 
         if refreshedURLs.isEmpty {
-            statusMessage = text.isEmpty
+            statusMessage = sourceText.isEmpty
                 ? "Paste text or load the clipboard to extract URLs."
                 : "No valid URLs were detected in the current text."
         } else {
@@ -235,8 +262,6 @@ internal final class URLWorkspace {
                 + "\(refreshedURLs.count == 1 ? "" : "s") ready to open."
         }
     }
-    deinit {
-        extractionTask?.cancel()
-        reloadBrowsersTask?.cancel()
-    }
+
+    deinit {}
 }

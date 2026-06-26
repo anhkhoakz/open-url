@@ -52,7 +52,9 @@ internal struct ContentView: View {
             URLSidebarView(
                 extractedURLs: workspace.extractedURLs,
                 selectedURLIDs: $workspace.selectedURLIDs
-            )
+            ) {
+                workspace.loadClipboard(stripTrackingParameters: stripTrackingParameters)
+            }
             .navigationSplitViewColumnWidth(
                 min: Layout.columnWidthMin,
                 ideal: Layout.columnWidthIdeal
@@ -75,38 +77,11 @@ internal struct ContentView: View {
         }
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button("Paste") {
-                    workspace.loadClipboard(stripTrackingParameters: stripTrackingParameters)
-                }
-                .keyboardShortcut("l", modifiers: [.command, .shift])
-
-                Button("Open Selected") {
-                    workspace.openSelected(
-                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
-                    )
-                }
-                .disabled(workspace.selectedURLs.isEmpty)
-
-                Button("Open All") {
-                    workspace.openAll(
-                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
-                    )
-                }
-                .disabled(workspace.hasURLs == false)
+                primaryToolbarActions
             }
 
             ToolbarItemGroup {
-                Button("Copy URLs") {
-                    workspace.copyExtractedURLs()
-                }
-                .disabled(workspace.hasURLs == false)
-
-                Button(
-                    "Inspector",
-                    systemImage: inspectorPresented ? "sidebar.trailing" : "sidebar.right"
-                ) {
-                    inspectorPresented.toggle()
-                }
+                secondaryToolbarActions
             }
         }
         .onAppear {
@@ -124,5 +99,95 @@ internal struct ContentView: View {
         .onChange(of: selectedBrowserBundleIdentifier) { _, newValue in
             workspace.reloadBrowsers(selectedBrowserBundleIdentifier: newValue, force: false)
         }
+    }
+
+    @ViewBuilder
+    private var primaryToolbarActions: some View {
+        loadClipboardButton
+        openSelectedButton
+        openAllButton
+    }
+
+    @ViewBuilder
+    private var secondaryToolbarActions: some View {
+        copyURLsButton
+        inspectorButton
+    }
+
+    private var loadClipboardButton: some View {
+        Group {
+            if workspace.hasURLs {
+                Button("Load Clipboard") {
+                    workspace.loadClipboard(stripTrackingParameters: stripTrackingParameters)
+                }
+                .buttonStyle(.bordered)
+            } else {
+                Button("Load Clipboard") {
+                    workspace.loadClipboard(stripTrackingParameters: stripTrackingParameters)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .keyboardShortcut("l", modifiers: [.command, .shift])
+    }
+
+    private var openSelectedButton: some View {
+        Group {
+            if workspace.selectedURLs.isEmpty == false {
+                Button("Open Selected") {
+                    workspace.openSelected(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button("Open Selected") {
+                    workspace.openSelected(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .disabled(workspace.selectedURLs.isEmpty)
+    }
+
+    private var openAllButton: some View {
+        Group {
+            if workspace.hasURLs && workspace.selectedURLs.isEmpty {
+                Button("Open All") {
+                    workspace.openAll(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button("Open All") {
+                    workspace.openAll(
+                        selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier
+                    )
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .disabled(workspace.hasURLs == false)
+    }
+
+    private var copyURLsButton: some View {
+        Button("Copy URLs") {
+            workspace.copyExtractedURLs()
+        }
+        .disabled(workspace.hasURLs == false)
+        .buttonStyle(.bordered)
+    }
+
+    private var inspectorButton: some View {
+        Button(
+            "Inspector",
+            systemImage: inspectorPresented ? "sidebar.trailing" : "sidebar.right"
+        ) {
+            inspectorPresented.toggle()
+        }
+        .buttonStyle(.bordered)
     }
 }

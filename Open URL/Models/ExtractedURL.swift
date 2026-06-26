@@ -22,8 +22,4 @@ internal struct ExtractedURL: Identifiable, Hashable {
     internal var fullDisplay: String {
         url.absoluteString
     }
-
-    internal var schemeDisplay: String {
-        url.scheme?.uppercased() ?? "URL"
-    }
 }

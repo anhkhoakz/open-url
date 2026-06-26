@@ -23,7 +23,7 @@ internal struct MenuBarExtraView: View {
 
     internal var body: some View {
         VStack(alignment: .leading, spacing: Layout.spacingSmall) {
-            Button("Open URLs From Clipboard") {
+            Button("Open Clipboard URLs") {
                 workspace.openClipboardURLs(
                     selectedBrowserBundleIdentifier: selectedBrowserBundleIdentifier,
                     stripTrackingParameters: stripTrackingParameters

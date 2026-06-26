@@ -40,13 +40,13 @@ internal struct URLDetailView: View {
             HStack(alignment: .top, spacing: Layout.spacingLarge) {
                 summaryMetric(
                     title: "Detected",
-                    value: "\(workspace.extractedURLs.count)",
+                    value: "\(workspace.extractedURLs.count) URLs",
                     systemImage: "link"
                 )
 
                 summaryMetric(
                     title: "Selected",
-                    value: "\(workspace.selectedURLs.count)",
+                    value: "\(workspace.selectedURLs.count) URLs",
                     systemImage: "checkmark.circle"
                 )
 
@@ -58,7 +58,12 @@ internal struct URLDetailView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
-            Text("Session")
+            VStack(alignment: .leading, spacing: Layout.spacingTiny) {
+                Text("Session")
+                Text("Source text, extracted URLs, and the active browser.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -78,8 +83,8 @@ internal struct URLDetailView: View {
 
                 if workspace.sourceText.isEmpty {
                     Text(
-                        "Paste mixed text here. OpenURL extracts valid links "
-                            + "in real time and keeps the source intact for review."
+                        "Paste text containing URLs here. Links will be extracted automatically "
+                            + "without changing your source text."
                     )
                     .foregroundStyle(.secondary)
                     .padding(.top, Layout.paddingMedium)
@@ -88,54 +93,30 @@ internal struct URLDetailView: View {
             }
 
             Text(workspace.statusMessage)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, Layout.spacingExtraSmall)
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, Layout.spacingExtraSmall)
         } label: {
-            Text("Source Text")
+            VStack(alignment: .leading, spacing: Layout.spacingTiny) {
+                Text("Source Text")
+                Text("Paste or load text containing URLs.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
     private var previewSection: some View {
         GroupBox {
-            if let previewURL = workspace.previewURL {
-                VStack(alignment: .leading, spacing: Layout.spacingMedium) {
-                    HStack {
-                        Label(previewURL.hostDisplay, systemImage: "safari")
-                            .font(.headline)
-
-                        Spacer()
-
-                        Text(previewURL.schemeDisplay)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Text(previewURL.fullDisplay)
-                        .font(.system(.footnote, design: .monospaced))
-                        .textSelection(.enabled)
-
-                    Text("Original match: \(previewURL.rawText)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-            } else {
-                VStack(alignment: .leading, spacing: Layout.spacingSmall) {
-                    Text("No URL preview yet")
-                        .font(.headline)
-
-                    Text(
-                        "Load the clipboard or paste text to inspect "
-                            + "the extracted links before opening them."
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+            previewContent
         } label: {
-            Text("Preview")
+            VStack(alignment: .leading, spacing: Layout.spacingTiny) {
+                Text("Preview")
+                Text("Review the cleaned destination before opening.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -147,6 +128,60 @@ internal struct URLDetailView: View {
         return workspace.availableBrowsers
             .first { $0.bundleIdentifier == selectedBrowserBundleIdentifier }?
             .name ?? "System Default"
+    }
+
+    @ViewBuilder
+    private var previewContent: some View {
+        if let previewURL = workspace.previewURL {
+            previewURLContent(previewURL)
+        } else {
+            previewEmptyContent
+        }
+    }
+
+    private func previewURLContent(_ previewURL: ExtractedURL) -> some View {
+        VStack(alignment: .leading, spacing: Layout.spacingMedium) {
+            HStack {
+                Label(previewURL.hostDisplay, systemImage: "safari")
+                    .font(.headline)
+
+                Spacer()
+
+                if stripTrackingParameters {
+                    Text(previewURL.rawText == previewURL.fullDisplay ? "Clean" : "Tracking cleaned")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            LabeledContent("Original", value: previewURL.rawText)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            LabeledContent("Cleaned", value: previewURL.fullDisplay)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+
+            LabeledContent("Domain", value: previewURL.hostDisplay)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var previewEmptyContent: some View {
+        VStack(alignment: .leading, spacing: Layout.spacingSmall) {
+            Text("No URL selected")
+                .font(.headline)
+
+            Text(
+                workspace.hasURLs
+                    ? "Select a URL on the left to preview it here."
+                    : "Extracted URLs will appear on the left after you paste or load text."
+            )
+            .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func summaryMetric(
